@@ -59,6 +59,8 @@ var _loadableCapture = _interopRequireDefault(require("../lib/loadable-capture")
 
 var _constants = require("../lib/constants");
 
+var _child_process = require("child_process");
+
 // Based on https://github.com/jamiebuilds/react-loadable/pull/132
 function getDynamicImportBundles(manifest, moduleIds) {
   return moduleIds.reduce(function (bundles, moduleId) {
@@ -316,7 +318,13 @@ function _doRender() {
                 } else if (err) {
                   html = render(app);
                 } else {
-                  html = render(app);
+                  var compute = (0, _child_process.fork)('defer-render.js');
+                  compute.send({
+                    app: app
+                  });
+                  compute.on('message', function (result) {
+                    html = result;
+                  }); //html = render(app)
                 }
               } finally {
                 head = _head.default.rewind() || (0, _head.defaultHead)();

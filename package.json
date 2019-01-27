@@ -98,6 +98,7 @@
     "path-to-regexp": "2.1.0",
     "prop-types": "15.6.2",
     "prop-types-exact": "1.2.0",
+    "rapscallion": "2.1.16",
     "react-error-overlay": "4.0.0",
     "recursive-copy": "2.0.6",
     "resolve": "1.5.0",

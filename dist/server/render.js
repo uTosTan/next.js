@@ -59,7 +59,7 @@ var _loadableCapture = _interopRequireDefault(require("../lib/loadable-capture")
 
 var _constants = require("../lib/constants");
 
-var _child_process = require("child_process");
+var _rapscallion = require("rapscallion");
 
 // Based on https://github.com/jamiebuilds/react-loadable/pull/132
 function getDynamicImportBundles(manifest, moduleIds) {
@@ -165,7 +165,7 @@ function doRender(_x12, _x13, _x14, _x15) {
 function _doRender() {
   _doRender = (0, _asyncToGenerator2.default)(
   /*#__PURE__*/
-  _regenerator.default.mark(function _callee3(req, res, pathname, query) {
+  _regenerator.default.mark(function _callee4(req, res, pathname, query) {
     var _ref2,
         err,
         page,
@@ -201,33 +201,33 @@ function _doRender() {
         dynamicImports,
         dynamicImportsIds,
         doc,
-        _args3 = arguments;
+        _args4 = arguments;
 
-    return _regenerator.default.wrap(function _callee3$(_context3) {
+    return _regenerator.default.wrap(function _callee4$(_context4) {
       while (1) {
-        switch (_context3.prev = _context3.next) {
+        switch (_context4.prev = _context4.next) {
           case 0:
-            _ref2 = _args3.length > 4 && _args3[4] !== undefined ? _args3[4] : {}, err = _ref2.err, page = _ref2.page, buildId = _ref2.buildId, hotReloader = _ref2.hotReloader, assetPrefix = _ref2.assetPrefix, runtimeConfig = _ref2.runtimeConfig, distDir = _ref2.distDir, dir = _ref2.dir, _ref2$dev = _ref2.dev, dev = _ref2$dev === void 0 ? false : _ref2$dev, _ref2$staticMarkup = _ref2.staticMarkup, staticMarkup = _ref2$staticMarkup === void 0 ? false : _ref2$staticMarkup, nextExport = _ref2.nextExport;
+            _ref2 = _args4.length > 4 && _args4[4] !== undefined ? _args4[4] : {}, err = _ref2.err, page = _ref2.page, buildId = _ref2.buildId, hotReloader = _ref2.hotReloader, assetPrefix = _ref2.assetPrefix, runtimeConfig = _ref2.runtimeConfig, distDir = _ref2.distDir, dir = _ref2.dir, _ref2$dev = _ref2.dev, dev = _ref2$dev === void 0 ? false : _ref2$dev, _ref2$staticMarkup = _ref2.staticMarkup, staticMarkup = _ref2$staticMarkup === void 0 ? false : _ref2$staticMarkup, nextExport = _ref2.nextExport;
             page = page || pathname; // In dev mode we use on demand entries to compile the page before rendering
 
             if (!hotReloader) {
-              _context3.next = 5;
+              _context4.next = 5;
               break;
             }
 
-            _context3.next = 5;
+            _context4.next = 5;
             return hotReloader.ensurePage(page);
 
           case 5:
             documentPath = (0, _path.join)(distDir, _constants.SERVER_DIRECTORY, _constants.CLIENT_STATIC_FILES_PATH, buildId, 'pages', '_document');
             appPath = (0, _path.join)(distDir, _constants.SERVER_DIRECTORY, _constants.CLIENT_STATIC_FILES_PATH, buildId, 'pages', '_app');
-            _context3.next = 9;
+            _context4.next = 9;
             return _promise.default.all([require((0, _path.join)(distDir, _constants.BUILD_MANIFEST)), require((0, _path.join)(distDir, _constants.REACT_LOADABLE_MANIFEST)), (0, _require.default)(page, {
               distDir: distDir
             }), require(documentPath), require(appPath)]);
 
           case 9:
-            _ref3 = _context3.sent;
+            _ref3 = _context4.sent;
             _ref4 = (0, _slicedToArray2.default)(_ref3, 5);
             buildManifest = _ref4[0];
             reactLoadableManifest = _ref4[1];
@@ -237,7 +237,7 @@ function _doRender() {
             Component = Component.default || Component;
 
             if (!(typeof Component !== 'function')) {
-              _context3.next = 19;
+              _context4.next = 19;
               break;
             }
 
@@ -256,7 +256,7 @@ function _doRender() {
               asPath: asPath
             };
             router = new _router.Router(page, query, asPath);
-            _context3.next = 26;
+            _context4.next = 26;
             return (0, _utils.loadGetInitialProps)(App, {
               Component: Component,
               router: router,
@@ -264,105 +264,146 @@ function _doRender() {
             });
 
           case 26:
-            props = _context3.sent;
+            props = _context4.sent;
             devFiles = buildManifest.devFiles;
             files = (0, _toConsumableArray2.default)(new _set.default([].concat((0, _toConsumableArray2.default)(getPageFiles(buildManifest, page)), (0, _toConsumableArray2.default)(getPageFiles(buildManifest, '/_app')), (0, _toConsumableArray2.default)(getPageFiles(buildManifest, '/_error'))))); // the response might be finshed on the getinitialprops call
 
             if (!(0, _utils.isResSent)(res)) {
-              _context3.next = 31;
+              _context4.next = 31;
               break;
             }
 
-            return _context3.abrupt("return");
+            return _context4.abrupt("return");
 
           case 31:
             reactLoadableModules = [];
 
-            renderPage = function renderPage() {
-              var options = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : function (Page) {
-                return Page;
+            renderPage =
+            /*#__PURE__*/
+            function () {
+              var _ref5 = (0, _asyncToGenerator2.default)(
+              /*#__PURE__*/
+              _regenerator.default.mark(function _callee3() {
+                var options,
+                    EnhancedApp,
+                    EnhancedComponent,
+                    app,
+                    render,
+                    html,
+                    head,
+                    _args3 = arguments;
+                return _regenerator.default.wrap(function _callee3$(_context3) {
+                  while (1) {
+                    switch (_context3.prev = _context3.next) {
+                      case 0:
+                        options = _args3.length > 0 && _args3[0] !== undefined ? _args3[0] : function (Page) {
+                          return Page;
+                        };
+                        EnhancedApp = App;
+                        EnhancedComponent = Component; // For backwards compatibility
+
+                        if (typeof options === 'function') {
+                          EnhancedComponent = options(Component);
+                        } else if ((0, _typeof2.default)(options) === 'object') {
+                          if (options.enhanceApp) {
+                            EnhancedApp = options.enhanceApp(App);
+                          }
+
+                          if (options.enhanceComponent) {
+                            EnhancedComponent = options.enhanceComponent(Component);
+                          }
+                        }
+
+                        app = _react.default.createElement(_loadableCapture.default, {
+                          report: function report(moduleName) {
+                            return reactLoadableModules.push(moduleName);
+                          }
+                        }, _react.default.createElement(EnhancedApp, (0, _objectSpread2.default)({
+                          Component: EnhancedComponent,
+                          router: router
+                        }, props)));
+                        render = staticMarkup ? _server.renderToStaticMarkup : _server.renderToString;
+                        _context3.prev = 6;
+
+                        if (!(err && dev)) {
+                          _context3.next = 11;
+                          break;
+                        }
+
+                        html = render(_react.default.createElement(_errorDebug.default, {
+                          error: err
+                        }));
+                        _context3.next = 18;
+                        break;
+
+                      case 11:
+                        if (!err) {
+                          _context3.next = 15;
+                          break;
+                        }
+
+                        html = render(app);
+                        _context3.next = 18;
+                        break;
+
+                      case 15:
+                        _context3.next = 17;
+                        return (0, _rapscallion.render)(app).toPromise();
+
+                      case 17:
+                        html = _context3.sent;
+
+                      case 18:
+                        _context3.prev = 18;
+                        head = _head.default.rewind() || (0, _head.defaultHead)();
+                        return _context3.finish(18);
+
+                      case 21:
+                        return _context3.abrupt("return", {
+                          html: html,
+                          head: head,
+                          buildManifest: buildManifest
+                        });
+
+                      case 22:
+                      case "end":
+                        return _context3.stop();
+                    }
+                  }
+                }, _callee3, this, [[6,, 18, 21]]);
+              }));
+
+              return function renderPage() {
+                return _ref5.apply(this, arguments);
               };
-              var EnhancedApp = App;
-              var EnhancedComponent = Component; // For backwards compatibility
+            }();
 
-              if (typeof options === 'function') {
-                EnhancedComponent = options(Component);
-              } else if ((0, _typeof2.default)(options) === 'object') {
-                if (options.enhanceApp) {
-                  EnhancedApp = options.enhanceApp(App);
-                }
-
-                if (options.enhanceComponent) {
-                  EnhancedComponent = options.enhanceComponent(Component);
-                }
-              }
-
-              var app = _react.default.createElement(_loadableCapture.default, {
-                report: function report(moduleName) {
-                  return reactLoadableModules.push(moduleName);
-                }
-              }, _react.default.createElement(EnhancedApp, (0, _objectSpread2.default)({
-                Component: EnhancedComponent,
-                router: router
-              }, props)));
-
-              var render = staticMarkup ? _server.renderToStaticMarkup : _server.renderToString;
-              var html;
-              var head;
-
-              try {
-                if (err && dev) {
-                  html = render(_react.default.createElement(_errorDebug.default, {
-                    error: err
-                  }));
-                } else if (err) {
-                  html = render(app);
-                } else {
-                  var compute = (0, _child_process.fork)('defer-render.js');
-                  compute.send({
-                    app: app
-                  });
-                  compute.on('message', function (result) {
-                    html = result;
-                  }); //html = render(app)
-                }
-              } finally {
-                head = _head.default.rewind() || (0, _head.defaultHead)();
-              }
-
-              return {
-                html: html,
-                head: head,
-                buildManifest: buildManifest
-              };
-            };
-
-            _context3.next = 35;
+            _context4.next = 35;
             return _loadable.default.preloadAll();
 
           case 35:
-            _context3.next = 37;
+            _context4.next = 37;
             return (0, _utils.loadGetInitialProps)(Document, (0, _objectSpread2.default)({}, ctx, {
               renderPage: renderPage
             }));
 
           case 37:
-            docProps = _context3.sent;
+            docProps = _context4.sent;
             dynamicImports = (0, _toConsumableArray2.default)(new _set.default(getDynamicImportBundles(reactLoadableManifest, reactLoadableModules)));
             dynamicImportsIds = dynamicImports.map(function (bundle) {
               return bundle.id;
             });
 
             if (!(0, _utils.isResSent)(res)) {
-              _context3.next = 42;
+              _context4.next = 42;
               break;
             }
 
-            return _context3.abrupt("return");
+            return _context4.abrupt("return");
 
           case 42:
             if (!(!Document.prototype || !Document.prototype.isReactComponent)) {
-              _context3.next = 44;
+              _context4.next = 44;
               break;
             }
 
@@ -398,14 +439,14 @@ function _doRender() {
               dynamicImports: dynamicImports,
               assetPrefix: assetPrefix
             }, docProps));
-            return _context3.abrupt("return", '<!DOCTYPE html>' + (0, _server.renderToStaticMarkup)(doc));
+            return _context4.abrupt("return", '<!DOCTYPE html>' + (0, _server.renderToStaticMarkup)(doc));
 
           case 46:
           case "end":
-            return _context3.stop();
+            return _context4.stop();
         }
       }
-    }, _callee3, this);
+    }, _callee4, this);
   }));
   return _doRender.apply(this, arguments);
 }
@@ -417,22 +458,22 @@ function renderScriptError(_x16, _x17, _x18, _x19) {
 function _renderScriptError() {
   _renderScriptError = (0, _asyncToGenerator2.default)(
   /*#__PURE__*/
-  _regenerator.default.mark(function _callee4(req, res, page, error) {
-    return _regenerator.default.wrap(function _callee4$(_context4) {
+  _regenerator.default.mark(function _callee5(req, res, page, error) {
+    return _regenerator.default.wrap(function _callee5$(_context5) {
       while (1) {
-        switch (_context4.prev = _context4.next) {
+        switch (_context5.prev = _context5.next) {
           case 0:
             // Asks CDNs and others to not to cache the errored page
             res.setHeader('Cache-Control', 'no-cache, no-store, max-age=0, must-revalidate');
 
             if (!(error.code === 'ENOENT' || error.message === 'INVALID_BUILD_ID')) {
-              _context4.next = 5;
+              _context5.next = 5;
               break;
             }
 
             res.statusCode = 404;
             res.end('404 - Not Found');
-            return _context4.abrupt("return");
+            return _context5.abrupt("return");
 
           case 5:
             logger.error(error.stack);
@@ -441,10 +482,10 @@ function _renderScriptError() {
 
           case 8:
           case "end":
-            return _context4.stop();
+            return _context5.stop();
         }
       }
-    }, _callee4, this);
+    }, _callee5, this);
   }));
   return _renderScriptError.apply(this, arguments);
 }

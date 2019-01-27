@@ -12,7 +12,7 @@ import ErrorDebug from '../lib/error-debug'
 import Loadable from '../lib/loadable'
 import LoadableCapture from '../lib/loadable-capture'
 import { BUILD_MANIFEST, REACT_LOADABLE_MANIFEST, SERVER_DIRECTORY, CLIENT_STATIC_FILES_PATH } from '../lib/constants'
-import { fork } from 'child_process'
+import { render as rrender } from 'rapscallion'
 
 // Based on https://github.com/jamiebuilds/react-loadable/pull/132
 function getDynamicImportBundles (manifest, moduleIds) {
@@ -112,7 +112,7 @@ async function doRender (req, res, pathname, query, {
   if (isResSent(res)) return
 
   let reactLoadableModules = []
-  const renderPage = (options = Page => Page) => {
+  const renderPage = async (options = Page => Page) => {
     let EnhancedApp = App
     let EnhancedComponent = Component
 
@@ -147,11 +147,7 @@ async function doRender (req, res, pathname, query, {
       } else if (err) {
         html = render(app)
       } else {
-        const compute = fork('defer-render.js')
-        compute.send({app})
-        compute.on('message', result => {
-          html = result
-        });
+        html = await rrender(app).toPromise()
         //html = render(app)
       }
     } finally {

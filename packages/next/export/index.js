@@ -1,14 +1,17 @@
-import del from 'del'
 import { cpus } from 'os'
 import { fork } from 'child_process'
 import cp from 'recursive-copy'
-import mkdirp from 'mkdirp-then'
+import mkdirpModule from 'mkdirp'
 import { resolve, join } from 'path'
 import { existsSync, readFileSync } from 'fs'
 import loadConfig from 'next-server/next-config'
-import { PHASE_EXPORT, SERVER_DIRECTORY, PAGES_MANIFEST, CONFIG_FILE, BUILD_ID_FILE, CLIENT_STATIC_FILES_PATH } from 'next-server/constants'
-import * as envConfig from 'next-server/config'
+import { PHASE_EXPORT, SERVER_DIRECTORY, PAGES_MANIFEST, CONFIG_FILE, BUILD_ID_FILE, CLIENT_PUBLIC_FILES_PATH, CLIENT_STATIC_FILES_PATH } from 'next-server/constants'
 import createProgress from 'tty-aware-progress'
+import { promisify } from 'util'
+import { recursiveDelete } from '../lib/recursive-delete'
+import { formatAmpMessages } from '../build/output/index'
+
+const mkdirp = promisify(mkdirpModule)
 
 export default async function (dir, options, configuration) {
   function log (message) {
@@ -21,6 +24,9 @@ export default async function (dir, options, configuration) {
   const concurrency = options.concurrency || 10
   const threads = options.threads || Math.max(cpus().length - 1, 1)
   const distDir = join(dir, nextConfig.distDir)
+  const subFolders = nextConfig.experimental.exportTrailingSlash
+
+  if (!options.buildExport && nextConfig.target !== 'server') throw new Error('Cannot export when target is not server. https://err.sh/zeit/next.js/next-export-serverless')
 
   log(`> using build directory: ${distDir}`)
 
@@ -29,19 +35,15 @@ export default async function (dir, options, configuration) {
   }
 
   const buildId = readFileSync(join(distDir, BUILD_ID_FILE), 'utf8')
-  const pagesManifest = require(join(distDir, SERVER_DIRECTORY, PAGES_MANIFEST))
+  const pagesManifest = !options.pages && require(join(distDir, SERVER_DIRECTORY, PAGES_MANIFEST))
 
-  const pages = Object.keys(pagesManifest)
+  const pages = options.pages || Object.keys(pagesManifest)
   const defaultPathMap = {}
 
   for (const page of pages) {
-    // _document and _app are not real pages.
-    if (page === '/_document' || page === '/_app') {
-      continue
-    }
-
-    if (page === '/_error') {
-      defaultPathMap['/404.html'] = { page }
+    // _document and _app are not real pages
+    // _error is exported as 404.html later on
+    if (page === '/_document' || page === '/_app' || page === '/_error') {
       continue
     }
 
@@ -50,7 +52,7 @@ export default async function (dir, options, configuration) {
 
   // Initialize the output directory
   const outDir = options.outdir
-  await del(join(outDir, '*'))
+  await recursiveDelete(join(outDir))
   await mkdirp(join(outDir, '_next', buildId))
 
   // Copy static directory
@@ -92,16 +94,11 @@ export default async function (dir, options, configuration) {
     hotReloader: null
   }
 
-  const {serverRuntimeConfig, publicRuntimeConfig} = nextConfig
+  const { serverRuntimeConfig, publicRuntimeConfig } = nextConfig
 
   if (publicRuntimeConfig) {
     renderOpts.runtimeConfig = publicRuntimeConfig
   }
-
-  envConfig.setConfig({
-    serverRuntimeConfig,
-    publicRuntimeConfig
-  })
 
   // We need this for server rendering the Link component.
   global.__NEXT_DATA__ = {
@@ -109,7 +106,8 @@ export default async function (dir, options, configuration) {
   }
 
   log(`  launching ${threads} threads with concurrency of ${concurrency} per thread`)
-  const exportPathMap = await nextConfig.exportPathMap(defaultPathMap, {dev: false, dir, outDir, distDir, buildId})
+  const exportPathMap = await nextConfig.exportPathMap(defaultPathMap, { dev: false, dir, outDir, distDir, buildId })
+  exportPathMap['/404.html'] = exportPathMap['/404.html'] || { page: '/_error' }
   const exportPaths = Object.keys(exportPathMap)
 
   const progress = !options.silent && createProgress(exportPaths.length)
@@ -124,6 +122,27 @@ export default async function (dir, options, configuration) {
     return result
   }, [])
 
+  const ampValidations = {}
+  let hadValidationError = false
+
+  const publicDir = join(dir, CLIENT_PUBLIC_FILES_PATH)
+  // Copy public directory
+  if (existsSync(publicDir)) {
+    log('  copying "public" directory')
+    await cp(
+      publicDir,
+      outDir,
+      {
+        expand: true,
+        filter (path) {
+          // Exclude paths used by pages
+          return !exportPathMap['/' + path]
+        }
+      }
+    )
+  }
+  const workers = new Set()
+
   await Promise.all(
     chunks.map(
       chunk =>
@@ -131,6 +150,7 @@ export default async function (dir, options, configuration) {
           const worker = fork(require.resolve('./worker'), [], {
             env: process.env
           })
+          workers.add(worker)
           worker.send({
             distDir,
             buildId,
@@ -138,7 +158,10 @@ export default async function (dir, options, configuration) {
             exportPathMap: chunk.pathMap,
             outDir,
             renderOpts,
-            concurrency
+            serverRuntimeConfig,
+            concurrency,
+            subFolders,
+            serverless: nextConfig.target === 'serverless'
           })
           worker.on('message', ({ type, payload }) => {
             if (type === 'progress' && progress) {
@@ -147,11 +170,23 @@ export default async function (dir, options, configuration) {
               reject(payload)
             } else if (type === 'done') {
               resolve()
+            } else if (type === 'amp-validation') {
+              ampValidations[payload.page] = payload.result
+              hadValidationError = hadValidationError || payload.result.errors.length
             }
           })
         })
     )
   )
+
+  workers.forEach(worker => worker.kill())
+
+  if (Object.keys(ampValidations).length) {
+    console.log(formatAmpMessages(ampValidations))
+  }
+  if (hadValidationError) {
+    throw new Error(`AMP Validation caused the export to fail. https://err.sh/zeit/next.js/amp-export-validation`)
+  }
 
   // Add an empty line to the console for the better readability.
   log('')

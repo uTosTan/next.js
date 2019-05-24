@@ -1,5 +1,3 @@
-[![Deploy to now](https://deploy.now.sh/static/button.svg)](https://deploy.now.sh/?repo=https://github.com/zeit/next.js/tree/master/examples/with-react-helmet)
-
 # react-helmet example
 
 ## How to use
@@ -46,4 +44,5 @@ now
 
 This an minimalistic example of how to combine next.js and [react-helmet](https://github.com/nfl/react-helmet).
 The title of the page shall be changed to "Hello next.js!"
+If you go to the page `/about`, the title will be overridden to "About | Hello next.js!"
 The rest is all up to you.

@@ -1,8 +1,18 @@
-const {PHASE_DEVELOPMENT_SERVER} = require('next-server/constants')
+const { PHASE_DEVELOPMENT_SERVER } = require('next-server/constants')
 
 module.exports = (phase) => {
   return {
     distDir: phase === PHASE_DEVELOPMENT_SERVER ? '.next-dev' : '.next',
+    publicRuntimeConfig: {
+      foo: 'foo'
+    },
+    serverRuntimeConfig: {
+      bar: 'bar'
+    },
+    experimental: {
+      // exportTrailingSlash: false,
+      autoExport: true
+    },
     exportPathMap: function () {
       return {
         '/': { page: '/' },
@@ -17,6 +27,6 @@ module.exports = (phase) => {
         '/file-name.md': { page: '/dynamic', query: { text: 'this file has an extension' } },
         '/query': { page: '/query', query: { a: 'blue' } }
       }
-    }
+    } // end exportPathMap
   }
 }

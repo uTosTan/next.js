@@ -2,33 +2,10 @@ import { Component } from 'react'
 import Router from 'next/router'
 import nextCookie from 'next-cookies'
 import cookie from 'js-cookie'
-import fetch from 'isomorphic-unfetch'
 
-export const login = async ({ username, url }) => {
-  try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username })
-    })
-    if (response.ok) {
-      const { token } = await response.json()
-      cookie.set('token', token, { expires: 1 })
-      Router.push('/profile')
-    } else {
-      console.log('Login failed.')
-      // https://github.com/developit/unfetch#caveats
-      let error = new Error(response.statusText)
-      error.response = response
-      return Promise.reject(error)
-    }
-  } catch (error) {
-    console.error(
-      'You have an error in your code or there are Network issues.',
-      error
-    )
-    throw new Error(error)
-  }
+export const login = async ({ token }) => {
+  cookie.set('token', token, { expires: 1 })
+  Router.push('/profile')
 }
 
 export const logout = () => {
@@ -38,13 +15,30 @@ export const logout = () => {
   Router.push('/login')
 }
 
-export function withAuthSync (WrappedComponent) {
-  return class extends Component {
+// Gets the display name of a JSX component for dev tools
+const getDisplayName = Component =>
+  Component.displayName || Component.name || 'Component'
+
+export const withAuthSync = WrappedComponent =>
+  class extends Component {
+    static displayName = `withAuthSync(${getDisplayName(WrappedComponent)})`
+
+    static async getInitialProps (ctx) {
+      const token = auth(ctx)
+
+      const componentProps =
+        WrappedComponent.getInitialProps &&
+        (await WrappedComponent.getInitialProps(ctx))
+
+      return { ...componentProps, token }
+    }
+
     constructor (props) {
       super(props)
 
       this.syncLogout = this.syncLogout.bind(this)
     }
+
     componentDidMount () {
       window.addEventListener('storage', this.syncLogout)
     }
@@ -65,17 +59,22 @@ export function withAuthSync (WrappedComponent) {
       return <WrappedComponent {...this.props} />
     }
   }
-}
 
-export default ctx => {
+export const auth = ctx => {
   const { token } = nextCookie(ctx)
 
+  /*
+   * This happens on server only, ctx.req is available means it's being
+   * rendered on server. If we are on server and token is not available,
+   * means user is not logged in.
+   */
   if (ctx.req && !token) {
     ctx.res.writeHead(302, { Location: '/login' })
     ctx.res.end()
     return
   }
 
+  // We already checked for server. This should only happen on client.
   if (!token) {
     Router.push('/login')
   }

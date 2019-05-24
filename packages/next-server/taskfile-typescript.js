@@ -15,6 +15,10 @@ try {
       }
 
       const ext = extname(file.base)
+
+      // Include declaration files as they are
+      if (file.base.endsWith('.d.ts')) return
+
       // For example files without an extension don't have to be rewritten
       if (ext) {
         // Replace `.ts` with `.js`
@@ -35,7 +39,7 @@ try {
       }
 
       // update file's data
-      file.data = Buffer.from(result.outputText.replace(/process\.env\.NEXT_VERSION/, `"${require('./package.json').version}"`), 'utf8')
+      file.data = Buffer.from(result.outputText.replace(/process\.env\.__NEXT_VERSION/, `"${require('./package.json').version}"`), 'utf8')
     })
   }
 } catch (err) {

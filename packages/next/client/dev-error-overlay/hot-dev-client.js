@@ -26,11 +26,11 @@ SOFTWARE.
 // It's been edited to rely on webpack-hot-middleware and to be more compatible with SSR / Next.js
 
 'use strict'
-import {getEventSourceWrapper} from './eventsource'
+import { getEventSourceWrapper } from './eventsource'
 import formatWebpackMessages from './format-webpack-messages'
 import * as ErrorOverlay from 'react-error-overlay'
 import stripAnsi from 'strip-ansi'
-import {rewriteStacktrace} from '../source-map-support'
+import { rewriteStacktrace } from '../source-map-support'
 import fetch from 'unfetch'
 
 // This alternative WebpackDevServer combines the functionality of:
@@ -95,6 +95,9 @@ export default function connect (options) {
   return {
     subscribeToHmrEvent (handler) {
       customHmrEventHandler = handler
+    },
+    reportRuntimeError (err) {
+      ErrorOverlay.reportRuntimeError(err)
     },
     prepareError (err) {
       // Temporary workaround for https://github.com/facebook/create-react-app/issues/4760
@@ -263,6 +266,7 @@ async function tryApplyUpdates (onHotUpdateSuccess) {
   }
 
   if (!isUpdateAvailable() || !canApplyUpdates()) {
+    ErrorOverlay.dismissBuildError()
     return
   }
 

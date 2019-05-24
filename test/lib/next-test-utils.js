@@ -6,7 +6,7 @@ import path from 'path'
 import getPort from 'get-port'
 import spawn from 'cross-spawn'
 import { readFileSync, writeFileSync, existsSync, unlinkSync } from 'fs'
-import fkill from 'fkill'
+import treeKill from 'tree-kill'
 
 // `next` here is the symlink in `test/node_modules/next` which points to the root directory.
 // This is done so that requiring from `next` works.
@@ -17,7 +17,7 @@ import _pkg from 'next/package.json'
 export const nextServer = server
 export const pkg = _pkg
 
-export function initNextServerScript (scriptPath, successRegexp, env) {
+export function initNextServerScript (scriptPath, successRegexp, env, failRegexp) {
   return new Promise((resolve, reject) => {
     const instance = spawn('node', [scriptPath], { env })
 
@@ -30,7 +30,12 @@ export function initNextServerScript (scriptPath, successRegexp, env) {
     }
 
     function handleStderr (data) {
-      process.stderr.write(data.toString())
+      const message = data.toString()
+      if (failRegexp && failRegexp.test(message)) {
+        instance.kill()
+        return reject(new Error('received failRegexp'))
+      }
+      process.stderr.write(message)
     }
 
     instance.stdout.on('data', handleStdout)
@@ -56,9 +61,9 @@ export function renderViaHTTP (appPort, pathname, query) {
   return fetchViaHTTP(appPort, pathname, query).then((res) => res.text())
 }
 
-export function fetchViaHTTP (appPort, pathname, query) {
+export function fetchViaHTTP (appPort, pathname, query, opts) {
   const url = `http://localhost:${appPort}${pathname}${query ? `?${qs.stringify(query)}` : ''}`
-  return fetch(url)
+  return fetch(url, opts)
 }
 
 export function findPort () {
@@ -66,10 +71,26 @@ export function findPort () {
 }
 
 export function runNextCommand (argv, options = {}) {
-  const cwd = path.dirname(require.resolve('next/package'))
+  const nextDir = path.dirname(require.resolve('next/package'))
+  const nextBin = path.join(nextDir, 'dist/bin/next')
+  const cwd = options.cwd || nextDir
+  // Let Next.js decide the environment
+  const env = { ...process.env, ...options.env, NODE_ENV: '' }
+
   return new Promise((resolve, reject) => {
     console.log(`Running command "next ${argv.join(' ')}"`)
-    const instance = spawn('node', ['dist/bin/next', ...argv], { cwd, stdio: options.stdout ? ['ignore', 'pipe', 'ignore'] : 'inherit' })
+    const instance = spawn('node', [nextBin, ...argv], { ...options.spawnOptions, cwd, env, stdio: ['ignore', 'pipe', 'pipe'] })
+
+    if (typeof options.instance === 'function') {
+      options.instance(instance)
+    }
+
+    let stderrOutput = ''
+    if (options.stderr) {
+      instance.stderr.on('data', function (chunk) {
+        stderrOutput += chunk
+      })
+    }
 
     let stdoutOutput = ''
     if (options.stdout) {
@@ -80,11 +101,14 @@ export function runNextCommand (argv, options = {}) {
 
     instance.on('close', () => {
       resolve({
-        stdout: stdoutOutput
+        stdout: stdoutOutput,
+        stderr: stderrOutput
       })
     })
 
     instance.on('error', (err) => {
+      err.stdout = stdoutOutput
+      err.stderr = stderrOutput
       reject(err)
     })
   })
@@ -92,12 +116,14 @@ export function runNextCommand (argv, options = {}) {
 
 export function runNextCommandDev (argv, stdOut) {
   const cwd = path.dirname(require.resolve('next/package'))
+  const env = { ...process.env, NODE_ENV: undefined }
+
   return new Promise((resolve, reject) => {
-    const instance = spawn('node', ['dist/bin/next', ...argv], { cwd })
+    const instance = spawn('node', ['dist/bin/next', ...argv], { cwd, env })
 
     function handleStdout (data) {
       const message = data.toString()
-      if (/> Ready on/.test(message)) {
+      if (/ready on/i.test(message)) {
         resolve(stdOut ? message : instance)
       }
       process.stdout.write(message)
@@ -130,13 +156,22 @@ export function nextBuild (dir, args = []) {
   return runNextCommand(['build', dir, ...args])
 }
 
-export function nextExport (dir, {outdir}) {
+export function nextExport (dir, { outdir }) {
   return runNextCommand(['export', dir, '--outdir', outdir])
+}
+
+export function nextStart (dir, port) {
+  return runNextCommandDev(['start', '-p', port, dir])
 }
 
 // Kill a launched app
 export async function killApp (instance) {
-  await fkill(instance.pid)
+  await new Promise((resolve, reject) => {
+    treeKill(instance.pid, (err) => {
+      if (err) return reject(err)
+      resolve()
+    })
+  })
 }
 
 export async function startApp (app) {
@@ -193,9 +228,9 @@ export async function check (contentFn, regex) {
     try {
       content = await contentFn()
     } catch (err) {
-      console.error('Error while getting content', {regex})
+      console.error('Error while getting content', { regex })
     }
-    console.error('TIMED OUT CHECK: ', {regex, content})
+    console.error('TIMED OUT CHECK: ', { regex, content })
     throw new Error('TIMED OUT: ' + regex + '\n\n' + content)
   }, 1000 * 30)
   while (!found) {

@@ -1,5 +1,3 @@
-[![Deploy to now](https://deploy.now.sh/static/button.svg)](https://deploy.now.sh/?repo=https://github.com/zeit/next.js/tree/master/examples/with-yarn-workspaces)
-
 # Yarn workspaces example
 
 ## How to use
@@ -51,4 +49,4 @@ In this example we have three workspaces:
 * [Documentation](https://yarnpkg.com/en/docs/workspaces)
 * [yarn workspaces](https://yarnpkg.com/lang/en/docs/cli/workspace)
 * [yarn workspace](https://yarnpkg.com/lang/en/docs/cli/workspaces)
-* [next-plugin-transpile-modules](https://www.npmjs.com/package/next-plugin-transpile-modules)
+* [next-transpile-modules](https://www.npmjs.com/package/next-transpile-modules)

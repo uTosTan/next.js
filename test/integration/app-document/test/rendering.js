@@ -1,6 +1,8 @@
 /* eslint-env jest */
 
+import { join } from 'path'
 import cheerio from 'cheerio'
+import { check, File, waitFor } from 'next-test-utils'
 
 export default function ({ app }, suiteName, render, fetch) {
   async function get$ (path, query) {
@@ -10,6 +12,11 @@ export default function ({ app }, suiteName, render, fetch) {
 
   describe(suiteName, () => {
     describe('_document', () => {
+      test('It has a custom html class', async () => {
+        const $ = await get$('/')
+        expect($('html').hasClass('test-html-props'))
+      })
+
       test('It has a custom body class', async () => {
         const $ = await get$('/')
         expect($('body').hasClass('custom_class'))
@@ -67,6 +74,22 @@ export default function ({ app }, suiteName, render, fetch) {
         expect($('#render-page-enhance-app').text().includes(nonce)).toBe(true)
         expect($('#render-page-enhance-component').text().includes(nonce)).toBe(true)
       })
+
+      // This is a workaround to fix https://github.com/zeit/next.js/issues/5860
+      // TODO: remove this workaround when https://bugs.webkit.org/show_bug.cgi?id=187726 is fixed.
+      test('It adds a timestamp to link tags with preload attribute to invalidate the cache (DEV only)', async () => {
+        const $ = await get$('/')
+        $('link[rel=preload]').each((index, element) => {
+          const href = $(element).attr('href')
+          expect(href.match(/\?/g)).toHaveLength(1)
+          expect(href).toMatch(/\?ts=/)
+        })
+        $('script[src]').each((index, element) => {
+          const src = $(element).attr('src')
+          expect(src.match(/\?/g)).toHaveLength(1)
+          expect(src).toMatch(/\?ts=/)
+        })
+      })
     })
 
     describe('_app', () => {
@@ -80,6 +103,32 @@ export default function ({ app }, suiteName, render, fetch) {
       test('It should share module state with pages', async () => {
         const $ = await get$('/shared')
         expect($('#currentstate').text() === 'UPDATED')
+      })
+
+      test('It should show valid error when thrown in _app getInitialProps', async () => {
+        const errMsg = 'have an error from _app getInitialProps'
+        const _app = new File(join(__dirname, '../pages/_app.js'))
+
+        let foundErr = false
+        expect(await render('/')).toMatch('page-index')
+        _app.replace('// throw _app GIP err here', `throw new Error("${errMsg}")`)
+
+        try {
+          let tries = 0
+          while (!foundErr && tries < 5) {
+            foundErr = (await render('/')).indexOf(errMsg) > -1
+            await waitFor(1000)
+            tries++
+          }
+        } finally {
+          _app.restore()
+          // Make sure _app is restored
+          await check(
+            () => render('/'),
+            /page-index/
+          )
+          expect(foundErr).toBeTruthy()
+        }
       })
     })
   })

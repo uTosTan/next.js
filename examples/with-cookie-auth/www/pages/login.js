@@ -1,12 +1,15 @@
 import { Component } from 'react'
+import fetch from 'isomorphic-unfetch'
 import Layout from '../components/layout'
 import { login } from '../utils/auth'
 
 class Login extends Component {
   static getInitialProps ({ req }) {
+    const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http'
+
     const apiUrl = process.browser
-      ? `https://${window.location.host}/api/login.js`
-      : `https://${req.headers.host}/api/login.js`
+      ? `${protocol}://${window.location.host}/api/login.js`
+      : `${protocol}://${req.headers.host}/api/login.js`
 
     return { apiUrl }
   }
@@ -25,11 +28,33 @@ class Login extends Component {
 
   async handleSubmit (event) {
     event.preventDefault()
+    this.setState({ error: '' })
     const username = this.state.username
     const url = this.props.apiUrl
-    login({ username, url }).catch(() =>
-      this.setState({ error: 'Login failed.' })
-    )
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username })
+      })
+      if (response.ok) {
+        const { token } = await response.json()
+        login({ token })
+      } else {
+        console.log('Login failed.')
+        // https://github.com/developit/unfetch#caveats
+        let error = new Error(response.statusText)
+        error.response = response
+        throw error
+      }
+    } catch (error) {
+      console.error(
+        'You have an error in your code or there are Network issues.',
+        error
+      )
+      this.setState({ error: error.message })
+    }
   }
 
   render () {

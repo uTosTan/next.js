@@ -1,9 +1,9 @@
 /* eslint-env jest */
 
 import { join } from 'path'
-import {SERVER_DIRECTORY, CLIENT_STATIC_FILES_PATH} from 'next-server/constants'
-import {requirePage, getPagePath, pageNotFoundError} from 'next-server/dist/server/require'
-import {normalizePagePath} from 'next-server/dist/server/normalize-page-path'
+import { SERVER_DIRECTORY, CLIENT_STATIC_FILES_PATH } from 'next-server/constants'
+import { requirePage, getPagePath, pageNotFoundError } from 'next-server/dist/server/require'
+import { normalizePagePath } from 'next-server/dist/server/normalize-page-path'
 
 const sep = '/'
 const distDir = join(__dirname, '_resolvedata')
@@ -59,17 +59,17 @@ describe('getPagePath', () => {
 
 describe('requirePage', () => {
   it('Should require /index.js when using /', async () => {
-    const page = await requirePage('/', distDir)
+    const page = (await requirePage('/', distDir))
     expect(page.test).toBe('hello')
   })
 
   it('Should require /index.js when using /index', async () => {
-    const page = await requirePage('/index', distDir)
+    const page = (await requirePage('/index', distDir))
     expect(page.test).toBe('hello')
   })
 
   it('Should require /world.js when using /world', async () => {
-    const page = await requirePage('/world', distDir)
+    const page = (await requirePage('/world', distDir))
     expect(page.test).toBe('world')
   })
 

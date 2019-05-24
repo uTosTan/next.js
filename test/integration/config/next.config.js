@@ -1,13 +1,12 @@
 const withCSS = require('@zeit/next-css')
 const withSass = require('@zeit/next-sass')
-const webpack = require('webpack')
 const path = require('path')
 module.exports = withCSS(withSass({
   onDemandEntries: {
     // Make sure entries are not getting disposed.
-    maxInactiveAge: 1000 * 60 * 60,
-    websocketPort: 3001
+    maxInactiveAge: 1000 * 60 * 60
   },
+  poweredByHeader: false,
   cssModules: true,
   serverRuntimeConfig: {
     mySecret: 'secret'
@@ -15,7 +14,10 @@ module.exports = withCSS(withSass({
   publicRuntimeConfig: {
     staticFolder: '/static'
   },
-  webpack (config, {buildId}) {
+  env: {
+    customVar: 'hello'
+  },
+  webpack (config, { buildId, webpack }) {
     // When next-css is `npm link`ed we have to solve loaders from the project root
     const nextLocation = path.join(require.resolve('next/package.json'), '../')
     const nextCssNodeModulesLocation = path.join(

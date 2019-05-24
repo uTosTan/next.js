@@ -1,6 +1,6 @@
 import 'cross-fetch/polyfill'
-import { Provider } from 'graphql-react'
-import { withGraphQL } from 'next-graphql-react'
+import { GraphQLProvider } from 'graphql-react'
+import { withGraphQLApp } from 'next-graphql-react'
 import App, { Container } from 'next/app'
 
 class CustomApp extends App {
@@ -8,12 +8,12 @@ class CustomApp extends App {
     const { Component, pageProps, graphql } = this.props
     return (
       <Container>
-        <Provider value={graphql}>
+        <GraphQLProvider graphql={graphql}>
           <Component {...pageProps} />
-        </Provider>
+        </GraphQLProvider>
       </Container>
     )
   }
 }
 
-export default withGraphQL(CustomApp)
+export default withGraphQLApp(CustomApp)
